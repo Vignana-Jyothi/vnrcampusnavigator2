@@ -1,0 +1,127 @@
+.student-page {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #222;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.student-header h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.student-page-subtitle {
+  margin: 0 0 20px;
+  color: #555;
+  font-size: 14px;
+}
+
+.student-page-search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.student-page-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.navigate-button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.navigate-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.student-page-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.student-map-panel {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fafafa;
+  min-height: 500px;
+}
+
+.student-map-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 500px;
+  color: #888;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.student-map-stage {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+}
+
+.student-map-background,
+.student-map-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.student-map-background svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.highlight-source {
+  fill: rgba(220, 38, 38, 0.35);
+  stroke: #dc2626;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.highlight-destination {
+  fill: rgba(22, 163, 74, 0.35);
+  stroke: #16a34a;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.highlight-label {
+  font-size: 10px;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
+}
+
+.highlight-label-source {
+  fill: #7f1d1d;
+}
+
+.highlight-label-destination {
+  fill: #14532d;
+}

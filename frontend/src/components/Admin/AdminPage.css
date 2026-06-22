@@ -1,0 +1,291 @@
+.admin-page {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #222;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.admin-header h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.admin-subtitle {
+  margin: 0 0 20px;
+  color: #555;
+  font-size: 14px;
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.upload-button {
+  position: relative;
+  display: inline-block;
+  background: #2563eb;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.upload-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.secondary-button {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.export-button {
+  margin-left: auto;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.export-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.block-input,
+.floor-input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.block-input {
+  width: 90px;
+}
+
+.floor-input {
+  width: 90px;
+}
+
+.save-server-button {
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.save-server-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.admin-success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.file-name {
+  font-size: 13px;
+  color: #555;
+}
+
+.admin-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.admin-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.map-panel {
+  flex: 2;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fafafa;
+  min-height: 500px;
+}
+
+.map-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 500px;
+  color: #888;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.map-stage {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+}
+
+.map-background,
+.map-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map-background svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.room-rect {
+  fill: rgba(37, 99, 235, 0.12);
+  stroke: rgba(37, 99, 235, 0.6);
+  stroke-width: 1;
+  cursor: pointer;
+}
+
+.room-rect:hover {
+  fill: rgba(37, 99, 235, 0.28);
+}
+
+.room-rect-mapped {
+  fill: rgba(22, 163, 74, 0.18);
+  stroke: rgba(22, 163, 74, 0.8);
+}
+
+.room-rect-mapped:hover {
+  fill: rgba(22, 163, 74, 0.32);
+}
+
+.room-label {
+  font-size: 10px;
+  fill: #14532d;
+  pointer-events: none;
+  user-select: none;
+}
+
+.json-panel {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  padding: 12px;
+  min-height: 500px;
+}
+
+.json-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.json-panel-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.room-count {
+  font-size: 12px;
+  color: #555;
+}
+
+.json-preview {
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 12px;
+  border-radius: 4px;
+  overflow: auto;
+  max-height: 460px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.room-highlight {
+  fill: rgba(220, 38, 38, 0.35);
+  stroke: #dc2626;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.student-section {
+  margin-top: 24px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  padding: 16px 20px;
+}
+
+.student-section h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.student-subtitle {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #555;
+}
+
+.student-search-row {
+  display: flex;
+  gap: 10px;
+}
+
+.student-search-input {
+  flex: 1;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.find-room-button {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.find-room-button:hover {
+  background: #b91c1c;
+}

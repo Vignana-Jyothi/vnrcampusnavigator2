@@ -1,0 +1,40 @@
+# Environment files
+.env
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+
+# Python virtual environment
+venv/
+backend/venv/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Vite / React build
+dist/
+build/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
