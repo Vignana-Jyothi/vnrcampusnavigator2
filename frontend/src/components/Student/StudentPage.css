@@ -97,6 +97,41 @@
   height: 100%;
 }
 
+.room-all {
+  fill: rgba(156, 163, 175, 0.15);
+  stroke: rgba(107, 114, 128, 0.6);
+  stroke-width: 1;
+}
+
+.room-label-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.room-all-label-number {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #4b5563;
+}
+
+.room-all-label-name {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: #6b7280;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
 .highlight-source {
   fill: rgba(220, 38, 38, 0.35);
   stroke: #dc2626;
@@ -111,17 +146,34 @@
   pointer-events: none;
 }
 
-.highlight-label {
-  font-size: 10px;
-  font-weight: bold;
-  pointer-events: none;
-  user-select: none;
+.highlight-source-label-number {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #7f1d1d;
 }
 
-.highlight-label-source {
-  fill: #7f1d1d;
+.highlight-source-label-name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: #991b1b;
+  opacity: 0.8;
+  margin-top: 2px;
 }
 
-.highlight-label-destination {
-  fill: #14532d;
+.highlight-destination-label-number {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #14532d;
+}
+
+.highlight-destination-label-name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: #166534;
+  opacity: 0.8;
+  margin-top: 2px;
 }

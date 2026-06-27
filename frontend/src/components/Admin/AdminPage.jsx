@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
+import RoomLabel from '../shared/RoomLabel';
 import './AdminPage.css';
 
 let keyCounter = 0;
@@ -46,13 +47,35 @@ function parseSvgFile(text) {
     y: parseFloat(rectEl.getAttribute('y')) || 0,
     width: parseFloat(rectEl.getAttribute('width')) || 0,
     height: parseFloat(rectEl.getAttribute('height')) || 0,
-    roomNumber: null,
-    roomName: null,
+    roomNumbers: null, // array of strings once mapped, e.g. ["A101", "A102"]
+    roomName: null, // optional
   }));
 
   const markup = new XMLSerializer().serializeToString(svgEl);
 
   return { markup, viewBox, rects };
+}
+
+/**
+ * Parses the comma-separated room-number input from a prompt into a
+ * clean, de-duplicated array. "A101, a101, A102" -> ["A101", "A102"]
+ * (first occurrence's casing wins; duplicates compared case-insensitively).
+ */
+function parseRoomNumbersInput(raw) {
+  const seen = new Set();
+  const result = [];
+  raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .forEach((num) => {
+      const lower = num.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        result.push(num);
+      }
+    });
+  return result;
 }
 
 export default function AdminPage() {
@@ -63,34 +86,34 @@ export default function AdminPage() {
   const [fileName, setFileName] = useState('');
   const fileInputRef = useRef(null);
 
-  // --- Student Testing section state (unchanged) ---
-  const [searchTerm, setSearchTerm] = useState('');
-  const [highlightedRoom, setHighlightedRoom] = useState(null); // matched room key, or null
-
-  // --- Save To Server state (new) ---
+  // --- Save To Server state ---
   const [block, setBlock] = useState('');
   const [floor, setFloor] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null); // { type: 'success' | 'error', text: string }
 
-  const mappedCount = rects.filter((r) => r.roomNumber).length;
+  // Every rect that has at least one room number assigned.
+  const mappedRects = useMemo(
+    () => rects.filter((r) => r.roomNumbers && r.roomNumbers.length > 0),
+    [rects]
+  );
+  const mappedCount = mappedRects.length;
 
-  // Derived room map: { "C101": { x, y, width, height }, ... }
-  const rooms = useMemo(() => {
-    const result = {};
-    rects.forEach((r) => {
-      if (r.roomNumber) {
-        result[r.roomNumber] = {
-          x: r.x,
-          y: r.y,
-          width: r.width,
-          height: r.height,
-          ...(r.roomName ? { name: r.roomName } : {}),
-        };
-      }
-    });
-    return result;
-  }, [rects]);
+  // The clean array shape used for the JSON preview, Export JSON, and
+  // as the basis for each POST /rooms payload. Internal `key` is
+  // stripped out since it's just a React tracking id, not real data.
+  const mappedRooms = useMemo(
+    () =>
+      mappedRects.map((r) => ({
+        roomNumbers: r.roomNumbers,
+        ...(r.roomName ? { roomName: r.roomName } : {}),
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+      })),
+    [mappedRects]
+  );
 
   const handleFileChange = useCallback((event) => {
     const file = event.target.files && event.target.files[0];
@@ -105,8 +128,7 @@ export default function AdminPage() {
         setRects(parsed.rects);
         setError('');
         setFileName(file.name);
-        setHighlightedRoom(null); // new map — old highlight no longer applies
-        setSearchTerm('');
+        setSaveMessage(null);
       } catch (err) {
         setError(err.message || 'Failed to parse SVG file.');
         setMarkup('');
@@ -117,7 +139,9 @@ export default function AdminPage() {
     reader.readAsText(file);
   }, []);
 
-  const handleRectClick = useCallback(
+  // Shared edit flow used both by clicking a rectangle on the map and
+  // by the "Edit" button in the Mapped Rooms list below.
+  const handleEditRoom = useCallback(
     (rectKey) => {
       const target = rects.find((r) => r.key === rectKey);
       if (!target) return;
@@ -125,38 +149,42 @@ export default function AdminPage() {
       // IMPORTANT: window.prompt must run OUTSIDE setRects.
       // React's StrictMode double-invokes state updater functions in
       // development to catch impure logic — if prompt() lived inside
-      // setRects(prev => {...}), it would fire twice per click and
-      // only the second answer would ever "stick".
-      const numberMessage = target.roomNumber
-        ? 'Edit room number (leave blank to unmap):'
-        : 'Enter room number (e.g. C101, C205, LAB1):';
+      // setRects(prev => {...}), it would fire twice per click.
+      const numbersMessage = target.roomNumbers
+        ? 'Edit room number(s), comma separated (leave blank to unmap):'
+        : 'Enter room number(s), comma separated (e.g. A101, A102):';
 
-      const numberInput = window.prompt(numberMessage, target.roomNumber || '');
-      if (numberInput === null) return; // user cancelled — leave unchanged
+      const numbersInput = window.prompt(
+        numbersMessage,
+        target.roomNumbers ? target.roomNumbers.join(', ') : ''
+      );
+      if (numbersInput === null) return; // user cancelled — leave unchanged
 
-      const trimmedNumber = numberInput.trim();
+      const parsedNumbers = parseRoomNumbersInput(numbersInput);
 
-      // Room name is optional. Only ask for it if a room number was
-      // actually given (no point naming an unmapped rectangle).
-      let trimmedName = '';
-      if (trimmedNumber) {
-        const nameInput = window.prompt(
-          'Enter room name (optional — leave blank to skip):',
-          target.roomName || ''
+      // Blank input unmaps the rectangle entirely.
+      if (parsedNumbers.length === 0) {
+        setRects((prev) =>
+          prev.map((r) =>
+            r.key === rectKey ? { ...r, roomNumbers: null, roomName: null } : r
+          )
         );
-        // nameInput === null means "cancel", which we treat the same
-        // as "skip" rather than aborting the whole mapping.
-        trimmedName = nameInput ? nameInput.trim() : '';
+        return;
       }
+
+      // Room name is optional.
+      const nameInput = window.prompt(
+        'Enter room name (optional — leave blank to skip):',
+        target.roomName || ''
+      );
+      // Cancelling the name prompt just means "skip the name", not
+      // "abort the whole edit" — the room numbers above already apply.
+      const trimmedName = nameInput ? nameInput.trim() : '';
 
       setRects((prev) =>
         prev.map((r) =>
           r.key === rectKey
-            ? {
-                ...r,
-                roomNumber: trimmedNumber || null,
-                roomName: trimmedNumber ? trimmedName || null : null,
-              }
+            ? { ...r, roomNumbers: parsedNumbers, roomName: trimmedName || null }
             : r
         )
       );
@@ -164,32 +192,23 @@ export default function AdminPage() {
     [rects]
   );
 
-  // --- Student Testing handler (new) ---
-  // Looks up the typed room number against the existing `rooms` map
-  // (case-insensitive) and highlights it on the map, or alerts if missing.
-  const handleFindRoom = useCallback(() => {
-    const query = searchTerm.trim();
-    if (!query) return;
-
-    const matchedKey = Object.keys(rooms).find(
-      (key) => key.toLowerCase() === query.toLowerCase()
+  // Explicit delete (used by the Mapped Rooms list's Delete button).
+  const handleDeleteRoom = useCallback((rectKey) => {
+    if (!window.confirm('Remove the room mapping for this rectangle?')) return;
+    setRects((prev) =>
+      prev.map((r) =>
+        r.key === rectKey ? { ...r, roomNumbers: null, roomName: null } : r
+      )
     );
+  }, []);
 
-    if (matchedKey) {
-      setHighlightedRoom(matchedKey);
-    } else {
-      setHighlightedRoom(null);
-      window.alert('Room not found');
-    }
-  }, [searchTerm, rooms]);
-
-  // --- Save To Server handler (new) ---
+  // --- Save To Server handler ---
   // Saves the floor map (POST /floor-map) and every mapped room
   // (POST /rooms) to the FastAPI backend.
   const handleSaveToServer = useCallback(async () => {
-    // Guard #1: ignore clicks while a save is already in flight —
-    // this is the main protection against duplicate submissions
-    // (e.g. a fast double-click before the button visually disables).
+    // Guard: ignore clicks while a save is already in flight — this is
+    // the main protection against duplicate submissions (e.g. a fast
+    // double-click before the button visually disables).
     if (isSaving) return;
 
     const trimmedBlock = block.trim();
@@ -235,16 +254,17 @@ export default function AdminPage() {
         throw new Error(body.detail || 'Failed to save the floor map.');
       }
 
-      // 2. Save every mapped room
-      const roomsToSave = rects.filter((r) => r.roomNumber);
-
+      // 2. Save every mapped room (one POST per rectangle — a rectangle
+      //    with multiple room numbers is still a single document, per
+      //    the backend's upsert-by-rectangle-identity logic).
       const roomResults = await Promise.all(
-        roomsToSave.map((r) =>
+        mappedRects.map((r) =>
           fetch(`${API_BASE}/rooms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              roomNo: r.roomNumber,
+              roomNumbers: r.roomNumbers,
+              ...(r.roomName ? { roomName: r.roomName } : {}),
               block: trimmedBlock,
               floor: floorNumber,
               x: r.x,
@@ -256,11 +276,17 @@ export default function AdminPage() {
             .then(async (res) => {
               if (!res.ok) {
                 const body = await res.json().catch(() => ({}));
-                throw new Error(body.detail || `Failed to save room ${r.roomNumber}`);
+                throw new Error(
+                  body.detail || `Failed to save room ${r.roomNumbers.join('/')}`
+                );
               }
-              return { roomNumber: r.roomNumber, ok: true };
+              return { label: r.roomNumbers.join('/'), ok: true };
             })
-            .catch((err) => ({ roomNumber: r.roomNumber, ok: false, error: err.message }))
+            .catch((err) => ({
+              label: r.roomNumbers.join('/'),
+              ok: false,
+              error: err.message,
+            }))
         )
       );
 
@@ -272,7 +298,7 @@ export default function AdminPage() {
           text: `Saved successfully: floor map + ${roomResults.length} room(s).`,
         });
       } else {
-        const failedList = failed.map((f) => f.roomNumber).join(', ');
+        const failedList = failed.map((f) => f.label).join(', ');
         setSaveMessage({
           type: 'error',
           text: `Floor map saved, but ${failed.length} room(s) failed: ${failedList}`,
@@ -286,10 +312,10 @@ export default function AdminPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving, block, floor, markup, mappedCount, rects]);
+  }, [isSaving, block, floor, markup, mappedCount, mappedRects]);
 
   const handleExport = useCallback(() => {
-    const json = JSON.stringify(rooms, null, 2);
+    const json = JSON.stringify(mappedRooms, null, 2);
 
     // eslint-disable-next-line no-console
     console.log(json);
@@ -303,15 +329,14 @@ export default function AdminPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [rooms]);
+  }, [mappedRooms]);
 
   const handleReset = useCallback(() => {
     setMarkup('');
     setRects([]);
     setError('');
     setFileName('');
-    setHighlightedRoom(null);
-    setSearchTerm('');
+    setSaveMessage(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
@@ -320,7 +345,8 @@ export default function AdminPage() {
       <header className="admin-header">
         <h1>Campus Navigation — Admin</h1>
         <p className="admin-subtitle">
-          Upload a floor map SVG, click each room rectangle, and assign a room number (room name optional).
+          Upload a floor map SVG, click each room rectangle, and assign one or more
+          room numbers (room name optional).
         </p>
       </header>
 
@@ -378,11 +404,7 @@ export default function AdminPage() {
       </div>
 
       {saveMessage && (
-        <div
-          className={
-            saveMessage.type === 'success' ? 'admin-success' : 'admin-error'
-          }
-        >
+        <div className={saveMessage.type === 'success' ? 'admin-success' : 'admin-error'}>
           {saveMessage.text}
         </div>
       )}
@@ -393,63 +415,44 @@ export default function AdminPage() {
         <div className="map-panel">
           {markup ? (
             <div className="map-stage">
-              <div
-                className="map-background"
-                dangerouslySetInnerHTML={{ __html: markup }}
-              />
-              <svg
-                className="map-overlay"
-                viewBox={viewBox}
-                preserveAspectRatio="xMidYMid meet"
-              >
-                {rects.map((r) => (
-                  <g key={r.key}>
-                    <rect
-                      x={r.x}
-                      y={r.y}
-                      width={r.width}
-                      height={r.height}
-                      className={
-                        r.roomNumber ? 'room-rect room-rect-mapped' : 'room-rect'
-                      }
-                      onClick={() => handleRectClick(r.key)}
-                    >
-                      <title>
-                        {r.roomNumber
-                          ? r.roomName
-                            ? `${r.roomNumber} — ${r.roomName}`
-                            : r.roomNumber
-                          : 'Click to assign a room number'}
-                      </title>
-                    </rect>
-                    {r.roomNumber && (
-                      <text
-                        x={r.x + r.width / 2}
-                        y={r.y + r.height / 2}
-                        className="room-label"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        onClick={() => handleRectClick(r.key)}
+              <div className="map-background" dangerouslySetInnerHTML={{ __html: markup }} />
+              <svg className="map-overlay" viewBox={viewBox} preserveAspectRatio="xMidYMid meet">
+                {rects.map((r) => {
+                  const isMapped = Boolean(r.roomNumbers && r.roomNumbers.length > 0);
+                  return (
+                    <g key={r.key}>
+                      <rect
+                        x={r.x}
+                        y={r.y}
+                        width={r.width}
+                        height={r.height}
+                        className={isMapped ? 'room-rect room-rect-mapped' : 'room-rect'}
+                        onClick={() => handleEditRoom(r.key)}
                       >
-                        {r.roomNumber}
-                      </text>
-                    )}
-                  </g>
-                ))}
-
-                {/* Student Testing highlight — rendered last so it
-                    paints on top of every other rect/text above */}
-                {highlightedRoom && rooms[highlightedRoom] && (
-                  <rect
-                    x={rooms[highlightedRoom].x}
-                    y={rooms[highlightedRoom].y}
-                    width={rooms[highlightedRoom].width}
-                    height={rooms[highlightedRoom].height}
-                    className="room-highlight"
-                  >
-                    <title>{highlightedRoom}</title>
-                  </rect>
-                )}
+                        <title>
+                          {isMapped
+                            ? r.roomName
+                              ? `${r.roomNumbers.join(' / ')} — ${r.roomName}`
+                              : r.roomNumbers.join(' / ')
+                            : 'Click to assign room number(s)'}
+                        </title>
+                      </rect>
+                      {isMapped && (
+                        <RoomLabel
+                          x={r.x}
+                          y={r.y}
+                          width={r.width}
+                          height={r.height}
+                          roomNumbers={r.roomNumbers}
+                          roomName={r.roomName}
+                          numberClassName="room-label-number"
+                          nameClassName="room-label-name"
+                          onClick={() => handleEditRoom(r.key)}
+                        />
+                      )}
+                    </g>
+                  );
+                })}
               </svg>
             </div>
           ) : (
@@ -466,32 +469,39 @@ export default function AdminPage() {
               {mappedCount} / {rects.length} mapped
             </span>
           </div>
-          <pre className="json-preview">{JSON.stringify(rooms, null, 2)}</pre>
+
+          {mappedRects.length > 0 && (
+            <ul className="room-list">
+              {mappedRects.map((r) => (
+                <li key={r.key} className="room-list-item">
+                  <div className="room-list-info">
+                    <span className="room-list-numbers">{r.roomNumbers.join(' / ')}</span>
+                    {r.roomName && <span className="room-list-name">{r.roomName}</span>}
+                  </div>
+                  <div className="room-list-actions">
+                    <button
+                      type="button"
+                      className="room-list-edit"
+                      onClick={() => handleEditRoom(r.key)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="room-list-delete"
+                      onClick={() => handleDeleteRoom(r.key)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <pre className="json-preview">{JSON.stringify(mappedRooms, null, 2)}</pre>
         </div>
       </div>
-
-      {/* --- Student Testing section (new) --- */}
-      <section className="student-section">
-        <h2>Student Testing</h2>
-        <p className="student-subtitle">
-          For testing only — search a room number to highlight it on the map above.
-        </p>
-        <div className="student-search-row">
-          <input
-            type="text"
-            className="student-search-input"
-            placeholder="e.g. C101"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleFindRoom();
-            }}
-          />
-          <button type="button" className="find-room-button" onClick={handleFindRoom}>
-            Find Room
-          </button>
-        </div>
-      </section>
     </div>
   );
 }

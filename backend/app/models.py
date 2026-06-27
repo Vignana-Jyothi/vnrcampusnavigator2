@@ -1,12 +1,21 @@
 """
 Pydantic models for request/response validation.
 """
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
 class RoomIn(BaseModel):
-    """Shape of a room as sent from the Admin page when saving."""
-    roomNo: str = Field(..., examples=["A101"])
+    """
+    Shape of a room as sent from the Admin page when saving.
+
+    A single rectangle can represent more than one room number
+    (e.g. a shared lab numbered both A101 and A102), so roomNumbers
+    is always a list — even for a single room number, send ["A101"].
+    roomName is optional.
+    """
+    roomNumbers: List[str] = Field(..., min_length=1, examples=[["A101", "A102"]])
+    roomName: Optional[str] = Field(default=None, examples=["Computer Lab"])
     block: str = Field(..., examples=["A"])
     floor: int = Field(..., examples=[1])
     x: float
@@ -17,7 +26,8 @@ class RoomIn(BaseModel):
 
 class RoomOut(BaseModel):
     """Shape of a room as returned to the frontend (no Mongo _id)."""
-    roomNo: str
+    roomNumbers: List[str]
+    roomName: Optional[str] = None
     block: str
     floor: int
     x: float
