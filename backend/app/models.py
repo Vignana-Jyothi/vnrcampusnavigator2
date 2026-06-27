@@ -50,5 +50,9 @@ class FloorMapOut(BaseModel):
 
 
 class NavigateResponse(BaseModel):
-    source: RoomOut
-    destination: RoomOut
+    # Lists, not single rooms — a search term like "Toilets" or "Lift"
+    # can legitimately match several rooms on the same floor, and all
+    # of them need to be returned so the frontend can highlight every
+    # one of them.
+    source: List[RoomOut]
+    destination: List[RoomOut]

@@ -10,10 +10,15 @@ const API_BASE = 'http://localhost:8000';
 
 // Two rooms are considered "the same rectangle" if their coordinates
 // match exactly. This is how we recognize, inside the full room list,
-// which entry is the source and which is the destination — so we can
-// skip drawing them twice (once gray, once colored).
+// which entries are source/destination matches — so we can skip
+// drawing them twice (once gray, once colored).
 function isSameRect(a, b) {
   return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+// True if `room` matches ANY entry in `list` by coordinates.
+function matchesAny(room, list) {
+  return list.some((entry) => isSameRect(room, entry));
 }
 
 export default function StudentPage() {
@@ -24,7 +29,8 @@ export default function StudentPage() {
 
   // Holds everything needed to render the map once navigation succeeds.
   const [mapData, setMapData] = useState(null);
-  // Shape: { markup, viewBox, rooms: [...every room on the floor...], source, destination }
+  // Shape: { markup, viewBox, rooms: [...every room on the floor...],
+  //          sourceRooms: [...ALL matches...], destinationRooms: [...ALL matches...] }
 
   const handleNavigate = useCallback(async () => {
     const source = sourceInput.trim();
@@ -40,9 +46,11 @@ export default function StudentPage() {
     setMapData(null);
 
     try {
-      // 1. Fetch both rooms via /navigate. The backend matches by
-      //    EITHER room number or room name, case-insensitively, so
-      //    either input style works here with no extra logic needed.
+      // 1. Fetch ALL rooms matching source and ALL rooms matching
+      //    destination via /navigate. A name search like "Toilets" or
+      //    "Lift" can legitimately return more than one room — the
+      //    backend returns arrays specifically so none of those
+      //    duplicates get silently dropped.
       const navigateRes = await fetch(
         `${API_BASE}/navigate?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}`
       );
@@ -52,11 +60,21 @@ export default function StudentPage() {
         throw new Error(body.detail || 'One or both rooms were not found.');
       }
 
-      const { source: sourceRoom, destination: destinationRoom } = await navigateRes.json();
+      const { source: sourceMatches, destination: destinationMatches } = await navigateRes.json();
 
-      // MVP assumption: source and destination live on the same
-      // block + floor, so a single floor map covers both highlights.
-      if (sourceRoom.block !== destinationRoom.block || sourceRoom.floor !== destinationRoom.floor) {
+      // MVP assumption: everything highlighted lives on the same
+      // block + floor, so a single floor map covers all of it. Use
+      // the first source match as the canonical floor, and keep only
+      // the matches (from either array) that are actually on it —
+      // this guards against a name search spanning multiple floors.
+      const { block, floor } = sourceMatches[0];
+
+      const sourceRooms = sourceMatches.filter((r) => r.block === block && r.floor === floor);
+      const destinationRooms = destinationMatches.filter(
+        (r) => r.block === block && r.floor === floor
+      );
+
+      if (sourceRooms.length === 0 || destinationRooms.length === 0) {
         throw new Error(
           'Source and destination are on different blocks/floors — cross-floor navigation is not supported yet.'
         );
@@ -64,7 +82,7 @@ export default function StudentPage() {
 
       // 2. Fetch every room on that floor, so the whole map can be drawn.
       const roomsRes = await fetch(
-        `${API_BASE}/rooms?block=${encodeURIComponent(sourceRoom.block)}&floor=${sourceRoom.floor}`
+        `${API_BASE}/rooms?block=${encodeURIComponent(block)}&floor=${floor}`
       );
 
       if (!roomsRes.ok) {
@@ -76,7 +94,7 @@ export default function StudentPage() {
 
       // 3. Fetch the floor map SVG covering this block/floor.
       const floorMapRes = await fetch(
-        `${API_BASE}/floor-map/${encodeURIComponent(sourceRoom.block)}/${sourceRoom.floor}`
+        `${API_BASE}/floor-map/${encodeURIComponent(block)}/${floor}`
       );
 
       if (!floorMapRes.ok) {
@@ -91,8 +109,8 @@ export default function StudentPage() {
         markup,
         viewBox,
         rooms: allRooms,
-        source: sourceRoom,
-        destination: destinationRoom,
+        sourceRooms,
+        destinationRooms,
       });
     } catch (err) {
       setError(err.message || 'Something went wrong while navigating.');
@@ -107,7 +125,8 @@ export default function StudentPage() {
         <h1>Campus Navigation — Find My Way</h1>
         <p className="student-page-subtitle">
           Enter a source and destination — by room number (e.g. A101) or room name
-          (e.g. Computer Lab) — to see the full floor map with both highlighted.
+          (e.g. Computer Lab, Toilets) — to see the full floor map with every match
+          highlighted.
         </p>
       </header>
 
@@ -156,16 +175,18 @@ export default function StudentPage() {
               viewBox={mapData.viewBox}
               preserveAspectRatio="xMidYMid meet"
             >
-              {/* Every room on the floor, drawn light gray. Source and
-                  destination are skipped here and drawn separately
-                  below (in color) so they aren't drawn twice. */}
+              {/* Every room on the floor, drawn light gray. Any room
+                  that matches a source or destination result (there
+                  may be several of each) is skipped here and drawn
+                  separately below in color, so it isn't drawn twice. */}
               {mapData.rooms
                 .filter(
                   (room) =>
-                    !isSameRect(room, mapData.source) && !isSameRect(room, mapData.destination)
+                    !matchesAny(room, mapData.sourceRooms) &&
+                    !matchesAny(room, mapData.destinationRooms)
                 )
                 .map((room, idx) => (
-                  <g key={`${room.x}-${room.y}-${idx}`}>
+                  <g key={`gray-${room.x}-${room.y}-${idx}`}>
                     <rect
                       x={room.x}
                       y={room.y}
@@ -192,47 +213,58 @@ export default function StudentPage() {
                   </g>
                 ))}
 
-              {/* Source highlight — red, drawn after the gray rooms so it's on top */}
-              <rect
-                x={mapData.source.x}
-                y={mapData.source.y}
-                width={mapData.source.width}
-                height={mapData.source.height}
-                className="highlight-source"
-              >
-                <title>{`Source: ${mapData.source.roomNumbers.join(' / ')}`}</title>
-              </rect>
-              <RoomLabel
-                x={mapData.source.x}
-                y={mapData.source.y}
-                width={mapData.source.width}
-                height={mapData.source.height}
-                roomNumbers={mapData.source.roomNumbers}
-                roomName={mapData.source.roomName}
-                numberClassName="highlight-source-label-number"
-                nameClassName="highlight-source-label-name"
-              />
+              {/* Source highlight(s) — red. Drawn after the gray rooms
+                  so they're on top. Every matching room gets its own
+                  rect + label, e.g. both "Toilets" if there are two. */}
+              {mapData.sourceRooms.map((room, idx) => (
+                <g key={`source-${room.x}-${room.y}-${idx}`}>
+                  <rect
+                    x={room.x}
+                    y={room.y}
+                    width={room.width}
+                    height={room.height}
+                    className="highlight-source"
+                  >
+                    <title>{`Source: ${room.roomNumbers.join(' / ')}`}</title>
+                  </rect>
+                  <RoomLabel
+                    x={room.x}
+                    y={room.y}
+                    width={room.width}
+                    height={room.height}
+                    roomNumbers={room.roomNumbers}
+                    roomName={room.roomName}
+                    numberClassName="highlight-source-label-number"
+                    nameClassName="highlight-source-label-name"
+                  />
+                </g>
+              ))}
 
-              {/* Destination highlight — green */}
-              <rect
-                x={mapData.destination.x}
-                y={mapData.destination.y}
-                width={mapData.destination.width}
-                height={mapData.destination.height}
-                className="highlight-destination"
-              >
-                <title>{`Destination: ${mapData.destination.roomNumbers.join(' / ')}`}</title>
-              </rect>
-              <RoomLabel
-                x={mapData.destination.x}
-                y={mapData.destination.y}
-                width={mapData.destination.width}
-                height={mapData.destination.height}
-                roomNumbers={mapData.destination.roomNumbers}
-                roomName={mapData.destination.roomName}
-                numberClassName="highlight-destination-label-number"
-                nameClassName="highlight-destination-label-name"
-              />
+              {/* Destination highlight(s) — green. Same idea: every
+                  matching room is highlighted, not just the first. */}
+              {mapData.destinationRooms.map((room, idx) => (
+                <g key={`destination-${room.x}-${room.y}-${idx}`}>
+                  <rect
+                    x={room.x}
+                    y={room.y}
+                    width={room.width}
+                    height={room.height}
+                    className="highlight-destination"
+                  >
+                    <title>{`Destination: ${room.roomNumbers.join(' / ')}`}</title>
+                  </rect>
+                  <RoomLabel
+                    x={room.x}
+                    y={room.y}
+                    width={room.width}
+                    height={room.height}
+                    roomNumbers={room.roomNumbers}
+                    roomName={room.roomName}
+                    numberClassName="highlight-destination-label-number"
+                    nameClassName="highlight-destination-label-name"
+                  />
+                </g>
+              ))}
             </svg>
           </div>
         ) : (
