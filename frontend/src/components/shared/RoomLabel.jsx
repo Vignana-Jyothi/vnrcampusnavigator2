@@ -76,9 +76,13 @@ export default function RoomLabel({
   numberClassName,
   nameClassName,
   onClick,
+  //rotation=0,
   bakedInNames = DEFAULT_BAKED_IN_NAMES,
 }) {
-  const numbersText = (roomNumbers || []).join(' / ');
+  // const numbersText = (roomNumbers || []).join(' / ');
+
+  const numbersText = roomNumbers || [];
+
   const nameIsBakedIn = isNameBakedIntoSvg(roomName, bakedInNames);
   const showName = Boolean(roomName) && !nameIsBakedIn;
 
@@ -93,6 +97,7 @@ export default function RoomLabel({
   // declared bounds — this is just a layout anchor, not a hard limit.
   const boxWidth = 140;
   const boxHeight = showName ? 56 : 36;
+  const rotation = height > (1.7*width) ? 90 : 0;
 
   return (
     <foreignObject
@@ -113,8 +118,23 @@ export default function RoomLabel({
         }}
         onClick={onClick}
       >
-        <div className="room-label-badge">
-          <span className={numberClassName}>{numbersText}</span>
+        {/* <div className="room-label-badge"> */}
+          {/* <span className={numberClassName}>{numbersText}</span> */}
+          <div
+  className="room-label-badge"
+  style={{
+    transform: `rotate(${rotation}deg)`,
+    transition: 'transform 0.3s ease',
+  }}
+>
+
+          <div className={numberClassName}>
+  {numbersText.map((num, index) => (
+    <div key={index}>{num}</div>
+  ))}
+</div>
+
+
           {showName && <span className={nameClassName}>{roomName}</span>}
         </div>
       </div>

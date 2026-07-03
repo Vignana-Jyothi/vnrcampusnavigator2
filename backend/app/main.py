@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import rooms, floor_maps, navigate
 
+from app.routers.admin import router as admin_router
+
 app = FastAPI(title="Campus Navigation API")
 
 # Allow the React dev servers (CRA on 3000, Vite on 5173) to call this API.
@@ -23,7 +25,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(admin_router)
 app.include_router(rooms.router)
 app.include_router(floor_maps.router)
 app.include_router(navigate.router)

@@ -67,6 +67,11 @@ export default function StudentPage() {
       // the first source match as the canonical floor, and keep only
       // the matches (from either array) that are actually on it —
       // this guards against a name search spanning multiple floors.
+    
+
+
+
+
       const { block, floor } = sourceMatches[0];
 
       const sourceRooms = sourceMatches.filter((r) => r.block === block && r.floor === floor);
@@ -200,6 +205,7 @@ export default function StudentPage() {
                           : room.roomNumbers.join(' / ')}
                       </title>
                     </rect>
+                    
                     <RoomLabel
                       x={room.x}
                       y={room.y}
@@ -209,6 +215,8 @@ export default function StudentPage() {
                       roomName={room.roomName}
                       numberClassName="room-all-label-number"
                       nameClassName="room-all-label-name"
+                     
+                      
                     />
                   </g>
                 ))}

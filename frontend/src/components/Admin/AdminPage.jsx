@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import RoomLabel from '../shared/RoomLabel';
 import './AdminPage.css';
+import { Navigate } from "react-router-dom";
 
 let keyCounter = 0;
 function nextKey() {
@@ -79,6 +80,15 @@ function parseRoomNumbersInput(raw) {
 }
 
 export default function AdminPage() {
+
+   const isAdmin = localStorage.getItem("isAdmin");
+
+  if (isAdmin !== "true") {
+    return <Navigate to="/admin-login" />;
+  }
+
+
+
   const [markup, setMarkup] = useState('');
   const [viewBox, setViewBox] = useState('0 0 800 600');
   const [rects, setRects] = useState([]);
@@ -102,6 +112,18 @@ export default function AdminPage() {
   // The clean array shape used for the JSON preview, Export JSON, and
   // as the basis for each POST /rooms payload. Internal `key` is
   // stripped out since it's just a React tracking id, not real data.
+
+  // const [rotatedRooms, setRotatedRooms] = useState({});
+
+  // const handleRotate = (roomId) => {
+  //   setRotatedRooms((prev) => ({
+  //     ...prev,
+  //     [roomId]: ((prev[roomId] || 0) + 90) % 360,
+  //   }));
+  // };
+
+
+
   const mappedRooms = useMemo(
     () =>
       mappedRects.map((r) => ({
@@ -340,6 +362,13 @@ export default function AdminPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
+  const handleLogout = () => {
+  localStorage.removeItem("isAdmin");
+  window.location.href = "/";
+};
+
+
+
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -447,7 +476,8 @@ export default function AdminPage() {
                           roomName={r.roomName}
                           numberClassName="room-label-number"
                           nameClassName="room-label-name"
-                          onClick={() => handleEditRoom(r.key)}
+  //                         rotation={rotatedRooms[r.key] || 0}
+  // onClick={() => handleRotate(r.key)}
                         />
                       )}
                     </g>
@@ -502,6 +532,12 @@ export default function AdminPage() {
           <pre className="json-preview">{JSON.stringify(mappedRooms, null, 2)}</pre>
         </div>
       </div>
+      <br />
+      <br />
+      <button type="button" onClick={handleLogout} className="logout-button">
+  Logout
+</button>
     </div>
+    
   );
 }
