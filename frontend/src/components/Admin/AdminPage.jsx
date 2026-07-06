@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import RoomLabel from '../shared/RoomLabel';
 import './AdminPage.css';
 import { Navigate } from "react-router-dom";
@@ -82,12 +82,6 @@ function parseRoomNumbersInput(raw) {
 export default function AdminPage() {
 
    const isAdmin = localStorage.getItem("isAdmin");
-
-  if (isAdmin !== "true") {
-    return <Navigate to="/admin-login" />;
-  }
-
-
 
   const [markup, setMarkup] = useState('');
   const [viewBox, setViewBox] = useState('0 0 800 600');
@@ -367,7 +361,9 @@ export default function AdminPage() {
   window.location.href = "/";
 };
 
-
+  if (isAdmin !== "true") {
+    return <Navigate to="/admin-login" />;
+  }
 
   return (
     <div className="admin-page">
