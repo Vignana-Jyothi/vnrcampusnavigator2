@@ -2,9 +2,9 @@ name: CI/CD — Campus Navigator
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master, develop,dev]
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, master, develop,dev]
 
 env:
   PATH: /opt/jmeter/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
