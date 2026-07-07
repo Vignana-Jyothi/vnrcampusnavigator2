@@ -1,10 +1,7 @@
 node_modules
 dist
-
-.git
-.gitignore
-
+npm-debug.log*
 .env
-
-Dockerfile
-README.md
+.env.*
+.DS_Store
+*.md

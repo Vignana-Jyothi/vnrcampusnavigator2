@@ -1,48 +1,35 @@
 services:
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────────
   backend:
-    build: ./backend
-    container_name: vnrcampusnavigator2_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campusnav_backend
     restart: unless-stopped
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
     environment:
-      MONGODB_URI: mongodb://mongodb:27017
-      DB_NAME: campus_navigation
-    depends_on:
-      - mongodb
+      MONGO_URI: ${MONGO_URI}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "6316:8000"
     networks:
-      - campus-network
+      - campusnav_net
 
+  # ── Frontend (React + Vite) ───────────────────────────────────────────────────
   frontend:
-    build: ./frontend
-    container_name: vnrcampusnavigator2_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: campusnav_frontend
     restart: unless-stopped
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "3326:3000"
     depends_on:
       - backend
     networks:
-      - campus-network
-
-  mongodb:
-    image: mongo:7
-    container_name: vnrcampusnavigator2_mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - campus-network
-
-volumes:
-  mongodb_data:
+      - campusnav_net
 
 networks:
-  campus-network:
+  campusnav_net:
     driver: bridge
