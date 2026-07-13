@@ -2,16 +2,16 @@ name: CI/CD — Campus Navigator
 
 on:
   push:
-    branches: [main, master, develop,dev]
+    branches: [main, master, develop, dev]
   pull_request:
-    branches: [main, master, develop,dev]
+    branches: [main, master, develop, dev]
 
 env:
   PATH: /opt/jmeter/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
 
 jobs:
   # ────────────────────────────────────────────────────────────────
-  # JOB 1 — Backend (FastAPI) Check
+  # JOB 1 — Backend Check
   # ────────────────────────────────────────────────────────────────
   backend-check:
     name: Backend Python Check
@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Check Python version
         run: python3 --version
@@ -34,7 +34,7 @@ jobs:
           pip3 install -r requirements.txt --break-system-packages
 
   # ────────────────────────────────────────────────────────────────
-  # JOB 2 — Frontend Lint & Build
+  # JOB 2 — Frontend
   # ────────────────────────────────────────────────────────────────
   frontend-lint-build:
     name: Frontend Lint & Build
@@ -47,13 +47,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v4.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
@@ -69,45 +69,55 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
   # ────────────────────────────────────────────────────────────────
-  # JOB 3 — Docker Build & Deploy (only on push to main/master)
+  # JOB 3 — Deploy
   # ────────────────────────────────────────────────────────────────
   deploy:
     name: Build & Deploy Docker Containers
     runs-on: gamma
-    needs: [backend-check, frontend-lint-build]
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    needs:
+      - backend-check
+      - frontend-lint-build
+
+    if: |
+      (github.ref == 'refs/heads/main' ||
+       github.ref == 'refs/heads/master' ||
+       github.ref == 'refs/heads/dev') &&
+      github.event_name == 'push'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        uses: actions/checkout@v4
 
-      - name: Verify Docker is accessible
-        run: docker --version && docker compose version
-
-      - name: Create .env file
+      - name: Verify Docker
         run: |
-          cat << EOF > .env
+          docker --version
+          docker compose version
+
+      - name: Create .env
+        run: |
+          cat <<EOF > .env
           MONGO_URI=${{ secrets.MONGO_URI }}
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           VITE_API_URL=${{ secrets.VITE_API_URL }}
           EOF
 
-      - name: Force remove old containers
+      - name: Stop old containers
         run: |
-          docker compose down --remove-orphans 2>/dev/null || true
+          docker compose down --remove-orphans || true
           docker image prune -f
 
-      - name: Build Docker images
+      - name: Build Docker Images
         run: |
           docker compose build \
             --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }}
 
-      - name: Start containers
-        run: docker compose up -d
+      - name: Start Containers
+        run: |
+          docker compose up -d
 
-      - name: Show running containers
+      - name: Show Running Containers
         run: docker compose ps
 
-      - name: Clean up old images
+      - name: Cleanup Images
         run: docker image prune -f
         continue-on-error: true
