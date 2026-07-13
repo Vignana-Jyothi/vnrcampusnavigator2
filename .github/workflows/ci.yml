@@ -2,9 +2,9 @@ name: CI/CD — Campus Navigator
 
 on:
   push:
-    branches: [main, master, develop,dev]
+    branches: [main, master, dev]
   pull_request:
-    branches: [main, master, develop,dev]
+    branches: [main, master, dev]
 
 env:
   PATH: /opt/jmeter/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin
@@ -63,19 +63,14 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Build
-        run: npm run build
-        env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-
   # ────────────────────────────────────────────────────────────────
-  # JOB 3 — Docker Build & Deploy (only on push to main/master)
+  # JOB 3 — Docker Build & Deploy
   # ────────────────────────────────────────────────────────────────
   deploy:
     name: Build & Deploy Docker Containers
     runs-on: gamma
     needs: [backend-check, frontend-lint-build]
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -84,29 +79,39 @@ jobs:
       - name: Verify Docker is accessible
         run: docker --version && docker compose version
 
+      - name: Set deploy variables
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "COMPOSE_FILE=docker-compose.yml" >> $GITHUB_ENV
+            echo "VITE_API_URL=https://navi.vjstartup.com/api" >> $GITHUB_ENV
+          else
+            echo "COMPOSE_FILE=docker-compose.dev.yml" >> $GITHUB_ENV
+            echo "VITE_API_URL=https://navigation.vjstartup.com/api" >> $GITHUB_ENV
+          fi
+
       - name: Create .env file
         run: |
           cat << EOF > .env
           MONGO_URI=${{ secrets.MONGO_URI }}
           SECRET_KEY=${{ secrets.SECRET_KEY }}
-          VITE_API_URL=${{ secrets.VITE_API_URL }}
+          VITE_API_URL=${{ env.VITE_API_URL }}
           EOF
 
       - name: Force remove old containers
         run: |
-          docker compose down --remove-orphans 2>/dev/null || true
+          docker compose -f $COMPOSE_FILE down --remove-orphans 2>/dev/null || true
           docker image prune -f
 
       - name: Build Docker images
         run: |
-          docker compose build \
-            --build-arg VITE_API_URL=${{ secrets.VITE_API_URL }}
+          docker compose -f $COMPOSE_FILE build \
+            --build-arg VITE_API_URL=${{ env.VITE_API_URL }}
 
       - name: Start containers
-        run: docker compose up -d
+        run: docker compose -f $COMPOSE_FILE up -d
 
       - name: Show running containers
-        run: docker compose ps
+        run: docker compose -f $COMPOSE_FILE ps
 
       - name: Clean up old images
         run: docker image prune -f

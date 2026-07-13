@@ -1,0 +1,35 @@
+services:
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campusnav_backend_dev
+    restart: unless-stopped
+    environment:
+      MONGO_URI: ${MONGO_URI}
+      SECRET_KEY: ${SECRET_KEY}
+    ports:
+      - "7316:8000"
+    networks:
+      - campusnav_net_dev
+
+  # ── Frontend (React + Vite) ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: campusnav_frontend_dev
+    restart: unless-stopped
+    ports:
+      - "4326:3000"
+    depends_on:
+      - backend
+    networks:
+      - campusnav_net_dev
+
+networks:
+  campusnav_net_dev:
+    driver: bridge
