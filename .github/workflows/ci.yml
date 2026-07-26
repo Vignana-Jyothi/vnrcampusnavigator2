@@ -15,7 +15,9 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   backend-check:
     name: Backend Python Check
-    runs-on: gamma
+    runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
+    environment:
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
 
     defaults:
       run:
@@ -38,7 +40,9 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   frontend-lint-build:
     name: Frontend Lint & Build
-    runs-on: gamma
+    runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
+    environment:
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
     needs: backend-check
 
     defaults:
@@ -73,7 +77,9 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   deploy:
     name: Build & Deploy Docker Containers
-    runs-on: gamma
+    runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
+    environment:
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
     needs:
       - backend-check
       - frontend-lint-build
