@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import rooms, floor_maps, navigate
 
 from app.routers.admin import router as admin_router
+from app.database import db, rooms_collection
 
 app = FastAPI(title="Campus Navigation API")
 
@@ -20,6 +21,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:5173",
+        "https://navigation.vjstartup.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -34,3 +36,19 @@ app.include_router(navigate.router)
 @app.get("/")
 async def health_check():
     return {"status": "ok", "service": "campus-navigation-api"}
+
+@app.get("/debug/db")
+async def debug_db():
+    try:
+        collections = await db.list_collection_names()
+        room_count = await rooms_collection.count_documents({})
+        sample_rooms = await rooms_collection.find({}, {"roomName": 1, "roomNumbers": 1, "_id": 0}).limit(5).to_list(length=5)
+        
+        return {
+            "database_name": db.name,
+            "collections_found": collections,
+            "total_rooms": room_count,
+            "sample_rooms": sample_rooms
+        }
+    except Exception as e:
+        return {"error": str(e)}

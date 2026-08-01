@@ -6,7 +6,7 @@ import './StudentPage.css';
 // Adjust this for your bundler/deployment:
 //   Create React App -> process.env.REACT_APP_API_BASE
 //   Vite              -> import.meta.env.VITE_API_BASE
-const API_BASE = 'http://localhost:8000';
+const API_BASE = `${import.meta.env.VITE_API_URL}`;
 
 // Two rooms are considered "the same rectangle" if their coordinates
 // match exactly. This is how we recognize, inside the full room list,

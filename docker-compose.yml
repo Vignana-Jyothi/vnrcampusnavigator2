@@ -7,7 +7,8 @@ services:
     container_name: campusnav_backend
     restart: unless-stopped
     environment:
-      MONGO_URI: ${MONGO_URI}
+      MONGODB_URI: ${MONGODB_URI}
+      DB_NAME: ${DB_NAME}
       SECRET_KEY: ${SECRET_KEY}
     ports:
       - "6316:8000"
