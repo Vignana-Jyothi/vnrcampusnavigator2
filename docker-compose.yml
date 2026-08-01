@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     environment:
       MONGODB_URI: ${MONGODB_URI}
+      DB_NAME: ${DB_NAME}
       SECRET_KEY: ${SECRET_KEY}
     ports:
       - "6316:8000"
