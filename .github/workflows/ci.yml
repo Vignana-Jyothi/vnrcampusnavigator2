@@ -17,7 +17,7 @@ jobs:
     name: Backend Python Check
     runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
     environment:
-      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-prod' || 'navi-development' }}
 
     defaults:
       run:
@@ -45,7 +45,7 @@ jobs:
     name: Frontend Lint & Build
     runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
     environment:
-      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-prod' || 'navi-development' }}
     needs: backend-check
 
     defaults:
@@ -82,7 +82,7 @@ jobs:
     name: Build & Deploy Docker Containers
     runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
     environment:
-      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-prod' || 'navi-development' }}
     needs:
       - backend-check
       - frontend-lint-build
@@ -104,7 +104,7 @@ jobs:
 
       - name: Create .env
         run: |
-          cat <<EOF > .env
+          cat << 'EOF' > .env
           MONGODB_URI=${{ secrets.MONGODB_URI }}
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           VITE_API_URL=${{ secrets.VITE_API_URL }}
