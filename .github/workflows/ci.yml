@@ -106,6 +106,7 @@ jobs:
         run: |
           cat << 'EOF' > .env
           MONGODB_URI=${{ secrets.MONGODB_URI }}
+          DB_NAME=${{ secrets.DB_NAME }}
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           VITE_API_URL=${{ secrets.VITE_API_URL }}
           EOF
