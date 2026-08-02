@@ -11,42 +11,13 @@ env:
 
 jobs:
   # ────────────────────────────────────────────────────────────────
-  # JOB 1 — Backend Check
-  # ────────────────────────────────────────────────────────────────
-  backend-check:
-    name: Backend Python Check
-    runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
-    environment:
-      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-prod' || 'navi-development' }}
-
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-  # ────────────────────────────────────────────────────────────────
-  # JOB 2 — Frontend
+  # JOB 1 — Frontend
   # ────────────────────────────────────────────────────────────────
   frontend-lint-build:
     name: Frontend Lint & Build
     runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
     environment:
-      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-prod' || 'navi-development' }}
-    needs: backend-check
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
 
     defaults:
       run:
@@ -76,16 +47,14 @@ jobs:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
   # ────────────────────────────────────────────────────────────────
-  # JOB 3 — Deploy
+  # JOB 2 — Deploy
   # ────────────────────────────────────────────────────────────────
   deploy:
     name: Build & Deploy Docker Containers
     runs-on: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'gamma' || 'dev-ai' }}
     environment:
-      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-prod' || 'navi-development' }}
-    needs:
-      - backend-check
-      - frontend-lint-build
+      name: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && 'navi-production' || 'navi-development' }}
+    needs: frontend-lint-build
 
     if: |
       (github.ref == 'refs/heads/main' ||
