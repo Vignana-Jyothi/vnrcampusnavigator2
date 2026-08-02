@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import rooms, floor_maps, navigate
 
 from app.routers.admin import router as admin_router
-from app.database import db, rooms_collection
+from app.database import db, rooms_collection, MONGODB_URI
 
 app = FastAPI(title="Campus Navigation API")
 
@@ -40,15 +40,19 @@ async def health_check():
 @app.get("/debug/db")
 async def debug_db():
     try:
+        # Check the first few characters of the URI to see if it's localhost or an actual Atlas URI
+        uri_redacted = MONGODB_URI[:15] + "..." if MONGODB_URI else "EMPTY"
+        
         collections = await db.list_collection_names()
         room_count = await rooms_collection.count_documents({})
         sample_rooms = await rooms_collection.find({}, {"roomName": 1, "roomNumbers": 1, "_id": 0}).limit(5).to_list(length=5)
         
         return {
+            "uri_starts_with": uri_redacted,
             "database_name": db.name,
             "collections_found": collections,
             "total_rooms": room_count,
             "sample_rooms": sample_rooms
         }
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": str(e), "uri_starts_with": MONGODB_URI[:15] + "..." if MONGODB_URI else "EMPTY"}
