@@ -11,8 +11,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DB_NAME", "campus_navigation")
+mongo_uri_env = os.getenv("MONGODB_URI", "").strip()
+MONGODB_URI = mongo_uri_env if mongo_uri_env else "mongodb://localhost:27017"
+db_name_env = os.getenv("DB_NAME", "").strip()
+DB_NAME = db_name_env if db_name_env else "campus_navigation"
 
 client = AsyncIOMotorClient(MONGODB_URI)
 db = client[DB_NAME]
