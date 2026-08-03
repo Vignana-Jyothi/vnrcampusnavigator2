@@ -1,5 +1,5 @@
 services:
-  # ── Backend (FastAPI) ─────────────────────────────────────────────────────────
+  ## ── Backend (FastAPI) ─────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -15,7 +15,7 @@ services:
     networks:
       - campusnav_net
 
-  # ── Frontend (React + Vite) ───────────────────────────────────────────────────
+  ## ── Frontend (React + Vite) ───────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
